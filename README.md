@@ -85,4 +85,4 @@ Siga estas instruções para configurar e rodar o bot no seu próprio servidor d
 
 Com tudo configurado, inicie o bot com o comando:
 ```sh
-python mainjeff.py
+python3 mainjeff.py # No Windows: python3 mainjeff.py
