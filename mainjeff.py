@@ -37,7 +37,7 @@ async def on_ready():
 async def on_member_join(member):
     # Substitua 'SEU_CANAL_ID_AQUI' pelo ID do seu canal de boas-vindas.
     # Certifique-se de que o ID seja um número inteiro (sem aspas).
-    canal_id = SEU_CANAL_ID_AQUI
+    canal_id = "https://discord.com/channels/1396868698739839028/1396868700132479037"
 
     canal = member.guild.get_channel(canal_id)
 
@@ -96,7 +96,14 @@ perfis = {}
 @bot.command()
 async def criarperfil(ctx, *, nome: str):
     user_id = ctx.author.id
-    perfis[user_id] = {"nome": nome, "pontos": perfis.get(user_id, {}).get("pontos", 0)}
+    perfis[user_id] = {
+        "nome": nome, 
+        "pontos": perfis.get(user_id, {}).get("pontos", 0),
+        "medalhas": perfis.get(user_id, {}).get("medalhas", None),
+        "missoes": perfis.get(user_id, {}).get("missoes", 0),
+        "rank": perfis.get(user_id, {}).get("rank", None),
+        "moedas": perfis.get(user_id, {}).get("moedas", 0)
+        }
     await ctx.send(f"✅ Perfil criado/editado para {ctx.author.mention}! Seu novo nome é: **{nome}**")
 
 @bot.command()
@@ -108,10 +115,28 @@ async def perfil(ctx, membro: discord.Member = None):
         await ctx.send(f"{membro.mention} ainda não tem perfil! Use `!criarperfil <nome>` para criar um.")
         return
 
-    dados = perfis[user_id]
-    await ctx.send(f"📜 **Perfil de {membro.mention}**\n"
-                   f"👤 **Nome:** {dados['nome']}\n"
-                   f"⭐ **Pontos:** {dados['pontos']}")
+    perfil = perfis[user_id]
+    
+    embed = discord.Embed(
+        title=f"🎮 Perfil de {membro.mention}",
+        color=discord.Color.blue()
+    )
+    embed.add_field(name="👤 Nome", value=perfil["nome"], inline=True)
+    embed.add_field(name="⭐ Pontos", value=perfil["pontos"], inline=True)
+
+    # Força quebra de linha (campo invisível)
+    embed.add_field(name="\u200b", value="\u200b", inline=False)
+    
+    embed.add_field(name="🏅 medalhas", value=perfil["medalhas"], inline=True)
+    embed.add_field(name="📜 Missões", value=perfil["missoes"], inline=True)
+
+    # Força quebra de linha (campo invisível)
+    embed.add_field(name="\u200b", value="\u200b", inline=False)
+
+    embed.add_field(name="📊 Rank", value=perfil["rank"], inline=True)
+    embed.add_field(name="💰 Moedas", value=perfil["moedas"], inline=True)
+    
+    await ctx.reply(embed=embed)
 
 @bot.command()
 async def rank(ctx):
@@ -131,9 +156,64 @@ async def rank(ctx):
 
     await ctx.send(msg)
 
+
+missoes_ativas = {} # Armazena missões ativas por usuário
+
+@bot.command()
+async def missoes(ctx, membro: discord.Member = None):
+    membro = membro or ctx.author
+    if membro.id not in missoes_ativas:
+        await ctx.send(f"{membro.mention} não tem missões ativas no momento.")
+        return
+    await ctx.send(f"🎯 Missão de {membro.mention}:\n**{missoes_ativas[membro.id]}**")
+
+
+
 # ===================================================================================
 # 5. COMANDOS DE ADMINISTRAÇÃO
 # ===================================================================================
+
+@bot.command()
+#@commands.has_permissions(administrator=True)
+async def darmissao(ctx, membro: discord.Member, *, descricao: str):
+    if membro.id in missoes_ativas:
+        await ctx.send(f"⚠️ {membro.display_name} já tem uma missão em andamento:\n**{missoes_ativas[membro.id]}**")
+        return
+    
+    missoes_ativas[membro.id] = descricao
+    await ctx.send(f"📜 Missão dada a {membro.mention}:\n**{descricao}**")
+
+@bot.command(name="aprovar")
+#@commands.has_permissions(manage_messages=True)  
+async def aprovar(ctx, membro: discord.Member):
+    if membro.id not in missoes_ativas:
+        await ctx.send(f"⚠️ {membro.display_name} não tem nenhuma missão ativa.")
+        return
+    
+    if membro.id not in perfis:
+        await ctx.send(f"⚠️ {membro.mention} não tem perfil ainda! Peça para ele criar um com `!criarperfil`.")
+        return
+    
+    perfis[membro.id]["pontos"] += 100
+    perfis[membro.id]["moedas"] += 50
+    perfis[membro.id]["missoes"] += 1
+
+    missao_feita = missoes_ativas.pop(membro.id)
+    await ctx.send(
+        f"✅ Missão de **{membro.display_name}** aprovada!\n"
+        f"Missão: *{missao_feita}*\n"
+        f"+100 pontos | +50 Moedas 🎉"
+    )
+
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def revogar(ctx, membro: discord.Member):
+    if membro.id not in missoes_ativas:
+        await ctx.send(f"⚠️ {membro.display_name} não tem nenhuma missão ativa.")
+        return
+    
+    missao_revogada = missoes_ativas.pop(membro.id)
+    await ctx.send(f"❌ Missão de **{membro.display_name}** revogada:\n*{missao_revogada}*")
 
 @bot.command()
 @commands.has_permissions(administrator=True)
@@ -156,6 +236,18 @@ async def rempontos(ctx, membro: discord.Member, qtd: int):
 
     perfis[user_id]["pontos"] -= qtd
     await ctx.send(f"➖ **{qtd}** pontos foram removidos de {membro.mention}! Total atual: **{perfis[user_id]['pontos']}**")
+
+@bot.command()
+#@commands.has_permissions(manage_messages=True)  # só quem pode gerenciar mensagens pode usar
+async def limpar(ctx, quantidade: int = 10):
+    if quantidade < 1:
+        await ctx.send("⚠️ A quantidade precisa ser pelo menos 1.")
+        return
+
+    # apagar o comando que chamou
+    deletadas = await ctx.channel.purge(limit=quantidade + 1)
+
+    await ctx.send(f"🧹 Limpei {len(deletadas)-1} mensagens!", delete_after=5)
 
 # ===================================================================================
 # 6. TRATAMENTO DE ERROS
