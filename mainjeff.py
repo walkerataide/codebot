@@ -33,6 +33,13 @@ async def on_ready():
     print(f'Bot conectado como {bot.user}')
     print(f'Jeff está pronto para caçar em {len(bot.guilds)} servidores!')
 
+    #confirmação de que está funcionando ou não os slash commands
+    try:                            
+        synced = await bot.tree.sync()
+        print(f"Sincronizados {len(synced)} comandos de barra")
+    except Exception as e:
+        print(f"Erro ao sincronizar: {e}")
+
 @bot.event
 async def on_member_join(member):
     # Substitua 'SEU_CANAL_ID_AQUI' pelo ID do seu canal de boas-vindas.
@@ -87,6 +94,17 @@ async def hug(ctx, member: discord.Member):
         return
     gif = random.choice(hug_gifs)
     await ctx.send(f"{ctx.author.mention} abraçou {member.mention}! 🤗\n{gif}")
+    
+
+#aqui estarão os slash commands, são identicos aos comandos normais, porém mais organizados
+#todos esses comandos aparecerão em uma lista ao digitar "/"
+@bot.tree.command(name="piada", description="Conta uma piada")
+async def piada_slash(interaction: discord.Interaction):
+    await interaction.response.send_message("O que o tubarão faz no computador? Navega na rede.")
+
+@bot.tree.command(name="dominio", description="Expande seu dominio")
+async def piada_slash(interaction: discord.Interaction):
+    await interaction.response.send_message("Calma paizão, você não é o sukuna.")
 
 # ===================================================================================
 # 4. SISTEMA DE PERFIS E RANKING
