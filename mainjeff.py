@@ -99,12 +99,24 @@ async def hug(ctx, member: discord.Member):
 #aqui estarão os slash commands, são identicos aos comandos normais, porém mais organizados
 #todos esses comandos aparecerão em uma lista ao digitar "/"
 @bot.tree.command(name="piada", description="Conta uma piada")
-async def piada_slash(interaction: discord.Interaction):
+async def slash_piada(interaction: discord.Interaction):
     await interaction.response.send_message("O que o tubarão faz no computador? Navega na rede.")
 
 @bot.tree.command(name="dominio", description="Expande seu dominio")
-async def piada_slash(interaction: discord.Interaction):
+async def slash_dominio(interaction: discord.Interaction):
     await interaction.response.send_message("Calma paizão, você não é o sukuna.")
+
+@bot.tree.command(name="hug", description="Abraça um membro")
+async def slash_hug(interaction: discord.Interaction, member: discord.Member):
+    if member == interaction.user:
+        await interaction.response.send_message("Você não pode se abraçar sozinho! 🤗")
+        return
+    
+    gif = random.choice(hug_gifs)
+    await interaction.response.send_message(
+        f"{interaction.user.mention} abraçou {member.mention}! 🤗\n{gif}"
+    )
+
 
 # ===================================================================================
 # 4. SISTEMA DE PERFIS E RANKING
