@@ -61,6 +61,7 @@ Siga estas instruções para configurar e rodar o bot no seu próprio servidor d
     - Dentro dele, adicione seu token da seguinte forma:
       ```
       DISCORD_TOKEN="SEU_TOKEN_AQUI"
+      CHANNEL_ID="ID_DO_CANAL_DO_DISCORD_AQUI"
       ```
 
 6.  **Crie um arquivo `.gitignore`:**
