@@ -10,19 +10,37 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
+import json
 
-# Carrega variáveis do arquivo .env
-load_dotenv()
+#carrega gifs de abraço
+def setup_hub_gifs():
+    #carrega os gifs de abraço
+    config_path = "config.json"
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = json.load(f)
+        hug_gifs = config.get("hug_gifs", {})
+    except Exception as e:
+        print(f"⚠️ Erro ao carregar os gifs de {config_path}: {e}")
+        reaction_rules = {}
+    return list(hug_gifs.values())
 
-# Configuração dos Intents (necessários para eventos e comandos)
-intents = discord.Intents.default()
-intents.messages = True
-intents.message_content = True
-intents.reactions = True
-intents.members = True
+HUG_GIFS = setup_hub_gifs()
 
-# Criação da instância do bot
-bot = commands.Bot(command_prefix="!", intents=intents)
+def setup_bot():
+    # Carrega variáveis do arquivo .env
+    load_dotenv()
+    # Configuração dos Intents (necessários para eventos e comandos)
+    intents = discord.Intents.default()
+    intents.messages = True
+    intents.message_content = True
+    intents.reactions = True
+    intents.members = True
+
+    # Criação da instância do bot
+    return commands.Bot(command_prefix="!", intents=intents)
+
+bot = setup_bot()
 
 # ===================================================================================
 # 2. EVENTOS DO BOT
@@ -44,8 +62,8 @@ async def on_ready():
 @bot.event
 async def on_member_join(member):
     """Mensagem de boas-vindas ao entrar no servidor."""
-    canal_id = 1396868700132479037  # Substitua pelo ID do canal de boas-vindas
-    canal = member.guild.get_channel(canal_id)
+    # Carrega o ID do canal de boas-vindas de um arquivo JSON de configuração
+    canal = member.guild.get_channel(os.getenv("CHANNEL_ID"))
 
     if canal:
         await canal.send(
@@ -61,13 +79,18 @@ async def on_reaction_add(reaction, user):
     if user.bot:
         return
 
-    reaction_rules = {
-        "🔥": "Uau! Esse é quente!",
-        "😂": "Haha, que engraçado!",
-        "❤️": "Amor sentido!",
-    }
+    # Carrega as regras de reação do config.json
+    config_path = "config.json"
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = json.load(f)
+        reaction_rules = config.get("reaction_rules", {})
+    except Exception as e:
+        print(f"⚠️ Erro ao carregar regras de reação de {config_path}: {e}")
+        reaction_rules = {}
 
     emoji = str(reaction.emoji)
+
     if emoji in reaction_rules:
         await reaction.message.channel.send(
             f"{user.name} reagiu com {emoji}: {reaction_rules[emoji]}"
@@ -88,20 +111,14 @@ async def dominio(ctx):
     await ctx.send("Calma paizão, você não é o sukuna.")
 
 
-# Lista de GIFs para o comando hug
-hug_gifs = [
-    "https://media.giphy.com/media/l2QDM9Jnim1YVILXa/giphy.gif",
-    "https://media.giphy.com/media/od5H3PmEG5EVq/giphy.gif",
-    "https://media.giphy.com/media/wnsgren9NtITS/giphy.gif",
-]
-
+#Dá abraço no membro indicado
 @bot.command()
 async def hug(ctx, member: discord.Member):
     if member == ctx.author:
         await ctx.send("Você não pode se abraçar sozinho! 🤗")
         return
 
-    gif = random.choice(hug_gifs)
+    gif = random.choice(HUG_GIFS)
     await ctx.send(f"{ctx.author.mention} abraçou {member.mention}! 🤗\n{gif}")
 
 
@@ -123,7 +140,7 @@ async def slash_hug(interaction: discord.Interaction, member: discord.Member):
         await interaction.response.send_message("Você não pode se abraçar sozinho! 🤗")
         return
 
-    gif = random.choice(hug_gifs)
+    gif = random.choice(HUG_GIFS)
     await interaction.response.send_message(
         f"{interaction.user.mention} abraçou {member.mention}! 🤗\n{gif}"
     )
