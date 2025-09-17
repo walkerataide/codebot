@@ -4,26 +4,25 @@
 # 1. IMPORTAÇÕES E CONFIGURAÇÃO INICIAL
 # ===================================================================================
 
-# Importações das bibliotecas necessárias.
-import discord  # Biblioteca principal para interagir com a API do Discord.
-from discord import app_commands  # Módulo para criar comandos de barra (slash commands).
-from discord.ext import commands  # Módulo da biblioteca para criar comandos de forma fácil.
-import random  # Módulo para gerar números aleatórios (usado no comando hug).
-import os  # Para interagir com o sistema operacional (usado para ler variáveis de ambiente).
-from dotenv import load_dotenv  # Para carregar variáveis de ambiente de um arquivo .env.
+import os
+import random
+import discord
+from discord import app_commands
+from discord.ext import commands
+from dotenv import load_dotenv
 
-# Carrega as variáveis do arquivo .env para o ambiente do script.
+# Carrega variáveis do arquivo .env
 load_dotenv()
 
-# Configuração dos "Intents" (Intenções) do bot.
+# Configuração dos Intents (necessários para eventos e comandos)
 intents = discord.Intents.default()
 intents.messages = True
 intents.message_content = True
 intents.reactions = True
 intents.members = True
 
-# Cria a instância do bot.
-bot = commands.Bot(command_prefix='!', intents=intents)
+# Criação da instância do bot
+bot = commands.Bot(command_prefix="!", intents=intents)
 
 # ===================================================================================
 # 2. EVENTOS DO BOT
@@ -31,43 +30,48 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 
 @bot.event
 async def on_ready():
-    print(f'Bot conectado como {bot.user}')
-    print(f'Jeff está pronto para caçar em {len(bot.guilds)} servidores!')
+    """Evento disparado quando o bot é iniciado e conectado."""
+    print(f"Bot conectado como {bot.user}")
+    print(f"Jeff está pronto para caçar em {len(bot.guilds)} servidores!")
 
-    #confirmação de que está funcionando ou não os slash commands
-    try:                            
+    # Sincronização dos comandos de barra
+    try:
         synced = await bot.tree.sync()
-        print(f"Sincronizados {len(synced)} comandos de barra")
+        print(f"{len(synced)} comandos de barra sincronizados")
     except Exception as e:
-        print(f"Erro ao sincronizar: {e}")
+        print(f"Erro ao sincronizar comandos: {e}")
 
 @bot.event
 async def on_member_join(member):
-    # Substitua 'SEU_CANAL_ID_AQUI' pelo ID do seu canal de boas-vindas.
-    # Certifique-se de que o ID seja um número inteiro (sem aspas).
-    canal_id = "https://discord.com/channels/1396868698739839028/1396868700132479037"
-
+    """Mensagem de boas-vindas ao entrar no servidor."""
+    canal_id = 1396868700132479037  # Substitua pelo ID do canal de boas-vindas
     canal = member.guild.get_channel(canal_id)
 
     if canal:
-        await canal.send(f'Seja bem vindo {member.mention}, você foi promovido a recruta da torre.')
+        await canal.send(
+            f"Seja bem-vindo {member.mention}, você foi promovido a recruta da torre."
+        )
     else:
-        print(f"AVISO: Canal de boas-vindas com ID {canal_id} não encontrado. Verifique a variável 'canal_id'.")
+        print(f"⚠️ Canal de boas-vindas com ID {canal_id} não encontrado.")
+
 
 @bot.event
 async def on_reaction_add(reaction, user):
+    """Reage automaticamente a certas reações."""
     if user.bot:
         return
 
     reaction_rules = {
         "🔥": "Uau! Esse é quente!",
         "😂": "Haha, que engraçado!",
-        "❤️": "Amor sentido!"
+        "❤️": "Amor sentido!",
     }
+
     emoji = str(reaction.emoji)
     if emoji in reaction_rules:
-        response = reaction_rules[emoji]
-        await reaction.message.channel.send(f"{user.name} reagiu com {emoji}: {response}")
+        await reaction.message.channel.send(
+            f"{user.name} reagiu com {emoji}: {reaction_rules[emoji]}"
+        )
 
 # ===================================================================================
 # 3. COMANDOS DE DIVERSÃO
@@ -75,17 +79,20 @@ async def on_reaction_add(reaction, user):
 
 @bot.command()
 async def piada(ctx):
-    await ctx.send('O que o tubarão faz no computador?')
-    await ctx.send('Navega na rede.')
+    await ctx.send("O que o tubarão faz no computador?")
+    await ctx.send("Navega na rede.")
+
 
 @bot.command()
 async def dominio(ctx):
-    await ctx.send('Calma paizão, você não é o sukuna')
+    await ctx.send("Calma paizão, você não é o sukuna.")
 
+
+# Lista de GIFs para o comando hug
 hug_gifs = [
     "https://media.giphy.com/media/l2QDM9Jnim1YVILXa/giphy.gif",
     "https://media.giphy.com/media/od5H3PmEG5EVq/giphy.gif",
-    "https://media.giphy.com/media/wnsgren9NtITS/giphy.gif"
+    "https://media.giphy.com/media/wnsgren9NtITS/giphy.gif",
 ]
 
 @bot.command()
@@ -93,36 +100,41 @@ async def hug(ctx, member: discord.Member):
     if member == ctx.author:
         await ctx.send("Você não pode se abraçar sozinho! 🤗")
         return
+
     gif = random.choice(hug_gifs)
     await ctx.send(f"{ctx.author.mention} abraçou {member.mention}! 🤗\n{gif}")
-    
 
-#aqui estarão os slash commands, são identicos aos comandos normais, porém mais organizados
-#todos esses comandos aparecerão em uma lista ao digitar "/"
+
+# ==== Versões em Slash Commands ====
+
 @bot.tree.command(name="piada", description="Conta uma piada")
 async def slash_piada(interaction: discord.Interaction):
     await interaction.response.send_message("O que o tubarão faz no computador? Navega na rede.")
 
-@bot.tree.command(name="dominio", description="Expande seu dominio")
+
+@bot.tree.command(name="dominio", description="Expande seu domínio")
 async def slash_dominio(interaction: discord.Interaction):
     await interaction.response.send_message("Calma paizão, você não é o sukuna.")
+
 
 @bot.tree.command(name="hug", description="Abraça um membro")
 async def slash_hug(interaction: discord.Interaction, member: discord.Member):
     if member == interaction.user:
         await interaction.response.send_message("Você não pode se abraçar sozinho! 🤗")
         return
-    
+
     gif = random.choice(hug_gifs)
     await interaction.response.send_message(
         f"{interaction.user.mention} abraçou {member.mention}! 🤗\n{gif}"
     )
 
-
 # ===================================================================================
 # 4. SISTEMA DE PERFIS E RANKING
 # ===================================================================================
+
 perfis = {}
+missoes_ativas = {}  # Armazena missões ativas por usuário
+
 
 @bot.tree.command(name="criarperfil", description="Cria ou edita seu perfil")
 @app_commands.describe(nome="O nome que deseja para seu perfil")
@@ -134,12 +146,13 @@ async def slash_criarperfil(interaction: discord.Interaction, nome: str):
         "medalhas": perfis.get(user_id, {}).get("medalhas", None),
         "missoes": perfis.get(user_id, {}).get("missoes", 0),
         "rank": perfis.get(user_id, {}).get("rank", None),
-        "moedas": perfis.get(user_id, {}).get("moedas", 0)
+        "moedas": perfis.get(user_id, {}).get("moedas", 0),
     }
 
     await interaction.response.send_message(
         f"✅ Perfil criado/editado para {interaction.user.mention}! Seu novo nome é: **{nome}**"
     )
+
 
 @bot.tree.command(name="perfil", description="Mostra o perfil de um usuário")
 @app_commands.describe(membro="O usuário cujo perfil deseja ver (deixe vazio para ver o seu)")
@@ -150,32 +163,26 @@ async def slash_perfil(interaction: discord.Interaction, membro: discord.Member 
     if user_id not in perfis:
         await interaction.response.send_message(
             f"{membro.mention} ainda não tem perfil! Use `/criarperfil <nome>` para criar um.",
-            ephemeral=True  
+            ephemeral=True,
         )
         return
 
     perfil = perfis[user_id]
-    
+
     embed = discord.Embed(
-        title=f"🎮 Perfil de {membro.display_name}",
-        color=discord.Color.blue()
+        title=f"🎮 Perfil de {membro.display_name}", color=discord.Color.blue()
     )
     embed.set_thumbnail(url=membro.avatar.url if membro.avatar else membro.default_avatar.url)
 
     embed.add_field(name="👤 Nome", value=perfil["nome"], inline=True)
     embed.add_field(name="⭐ Pontos", value=perfil["pontos"], inline=True)
-
-    embed.add_field(name="\u200b", value="\u200b", inline=False)
-
     embed.add_field(name="🏅 Medalhas", value=perfil["medalhas"], inline=True)
     embed.add_field(name="📜 Missões", value=perfil["missoes"], inline=True)
-
-    embed.add_field(name="\u200b", value="\u200b", inline=False)
-
     embed.add_field(name="📊 Rank", value=perfil["rank"], inline=True)
     embed.add_field(name="💰 Moedas", value=perfil["moedas"], inline=True)
-    
+
     await interaction.response.send_message(embed=embed)
+
 
 @bot.tree.command(name="rank", description="Mostra o ranking dos perfis do servidor")
 async def slash_rank(interaction: discord.Interaction):
@@ -184,31 +191,23 @@ async def slash_rank(interaction: discord.Interaction):
         return
 
     ranking = sorted(perfis.items(), key=lambda item: item[1]["pontos"], reverse=True)
+    embed = discord.Embed(title="🏆 Ranking do Servidor 🏆", color=discord.Color.gold())
 
-    embed = discord.Embed(
-        title="🏆 Ranking do Servidor 🏆",
-        color=discord.Color.gold()
-    )
-
-    for i, (user_id, dados) in enumerate(ranking, start=1):  
+    for i, (user_id, dados) in enumerate(ranking, start=1):
         try:
             user = await bot.fetch_user(user_id)
-            embed.add_field(
-                name=f"{i}. {user.display_name}",
-                value=f"**{dados['pontos']}** pontos\n(Nome: {dados['nome']})",
-                inline=False
-            )
+            nome = user.display_name
         except discord.NotFound:
-            embed.add_field(
-                name=f"{i}. Usuário Desconhecido",
-                value=f"**{dados['pontos']}** pontos\n(Nome: {dados['nome']})",
-                inline=False
-            )
+            nome = "Usuário Desconhecido"
+
+        embed.add_field(
+            name=f"{i}. {nome}",
+            value=f"**{dados['pontos']}** pontos\n(Nome: {dados['nome']})",
+            inline=False,
+        )
 
     await interaction.response.send_message(embed=embed)
 
-
-missoes_ativas = {} # Armazena missões ativas por usuário
 
 @bot.tree.command(name="missoes", description="Mostra as missões ativas de um usuário")
 @app_commands.describe(membro="O usuário cujas missões deseja ver (deixe vazio para ver as suas)")
@@ -217,8 +216,7 @@ async def slash_missoes(interaction: discord.Interaction, membro: discord.Member
 
     if membro.id not in missoes_ativas:
         await interaction.response.send_message(
-            f"{membro.mention} não tem missões ativas no momento.",
-            ephemeral=True 
+            f"{membro.mention} não tem missões ativas no momento.", ephemeral=True
         )
         return
 
@@ -226,32 +224,32 @@ async def slash_missoes(interaction: discord.Interaction, membro: discord.Member
         f"🎯 Missão de {membro.mention}:\n**{missoes_ativas[membro.id]}**"
     )
 
-
 # ===================================================================================
 # 5. COMANDOS DE ADMINISTRAÇÃO
 # ===================================================================================
 
 @bot.command()
-#@commands.has_permissions(administrator=True)
 async def darmissao(ctx, membro: discord.Member, *, descricao: str):
     if membro.id in missoes_ativas:
-        await ctx.send(f"⚠️ {membro.display_name} já tem uma missão em andamento:\n**{missoes_ativas[membro.id]}**")
+        await ctx.send(
+            f"⚠️ {membro.display_name} já tem uma missão em andamento:\n**{missoes_ativas[membro.id]}**"
+        )
         return
-    
+
     missoes_ativas[membro.id] = descricao
     await ctx.send(f"📜 Missão dada a {membro.mention}:\n**{descricao}**")
 
+
 @bot.command(name="aprovar")
-#@commands.has_permissions(manage_messages=True)  
 async def aprovar(ctx, membro: discord.Member):
     if membro.id not in missoes_ativas:
         await ctx.send(f"⚠️ {membro.display_name} não tem nenhuma missão ativa.")
         return
-    
+
     if membro.id not in perfis:
-        await ctx.send(f"⚠️ {membro.mention} não tem perfil ainda! Peça para ele criar um com `!criarperfil`.")
+        await ctx.send(f"⚠️ {membro.mention} não tem perfil ainda! Use `/criarperfil`.")
         return
-    
+
     perfis[membro.id]["pontos"] += 100
     perfis[membro.id]["moedas"] += 50
     perfis[membro.id]["missoes"] += 1
@@ -263,26 +261,32 @@ async def aprovar(ctx, membro: discord.Member):
         f"+100 pontos | +50 Moedas 🎉"
     )
 
+
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def revogar(ctx, membro: discord.Member):
     if membro.id not in missoes_ativas:
         await ctx.send(f"⚠️ {membro.display_name} não tem nenhuma missão ativa.")
         return
-    
+
     missao_revogada = missoes_ativas.pop(membro.id)
     await ctx.send(f"❌ Missão de **{membro.display_name}** revogada:\n*{missao_revogada}*")
+
 
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def addpontos(ctx, membro: discord.Member, qtd: int):
     user_id = membro.id
     if user_id not in perfis:
-        await ctx.send(f"{membro.mention} não tem perfil ainda! Peça para ele criar um com `!criarperfil`.")
+        await ctx.send(f"{membro.mention} não tem perfil ainda! Use `/criarperfil`.")
         return
 
     perfis[user_id]["pontos"] += qtd
-    await ctx.send(f"➕ **{qtd}** pontos foram adicionados a {membro.mention}! Total atual: **{perfis[user_id]['pontos']}**")
+    await ctx.send(
+        f"➕ **{qtd}** pontos foram adicionados a {membro.mention}! "
+        f"Total atual: **{perfis[user_id]['pontos']}**"
+    )
+
 
 @bot.command()
 @commands.has_permissions(administrator=True)
@@ -293,19 +297,21 @@ async def rempontos(ctx, membro: discord.Member, qtd: int):
         return
 
     perfis[user_id]["pontos"] -= qtd
-    await ctx.send(f"➖ **{qtd}** pontos foram removidos de {membro.mention}! Total atual: **{perfis[user_id]['pontos']}**")
+    await ctx.send(
+        f"➖ **{qtd}** pontos foram removidos de {membro.mention}! "
+        f"Total atual: **{perfis[user_id]['pontos']}**"
+    )
+
 
 @bot.command()
-#@commands.has_permissions(manage_messages=True)  # só quem pode gerenciar mensagens pode usar
 async def limpar(ctx, quantidade: int = 10):
+    """Apaga mensagens no chat (default = 10)."""
     if quantidade < 1:
         await ctx.send("⚠️ A quantidade precisa ser pelo menos 1.")
         return
 
-    # apagar o comando que chamou
     deletadas = await ctx.channel.purge(limit=quantidade + 1)
-
-    await ctx.send(f"🧹 Limpei {len(deletadas)-1} mensagens!", delete_after=5)
+    await ctx.send(f"🧹 Limpei {len(deletadas) - 1} mensagens!", delete_after=5)
 
 # ===================================================================================
 # 6. TRATAMENTO DE ERROS
@@ -315,6 +321,7 @@ async def limpar(ctx, quantidade: int = 10):
 async def hug_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
         await ctx.send("Você precisa mencionar alguém para abraçar! 😢 Exemplo: `!hug @amigo`")
+
 
 @addpontos.error
 @rempontos.error
@@ -327,16 +334,16 @@ async def admin_cmds_error(ctx, error):
 # ===================================================================================
 
 def main():
-    """Função principal para iniciar o bot de forma segura."""
-    # Busca o token do arquivo .env.
-    TOKEN = os.getenv('DISCORD_TOKEN')
+    """Função principal para iniciar o bot."""
+    TOKEN = os.getenv("DISCORD_TOKEN")
 
     if TOKEN is None:
         print("ERRO: A variável de ambiente DISCORD_TOKEN não foi encontrada.")
-        print("Por favor, crie um arquivo .env e adicione DISCORD_TOKEN=SEU_TOKEN_AQUI")
+        print("Crie um arquivo .env e adicione: DISCORD_TOKEN=SEU_TOKEN_AQUI")
         return
 
     bot.run(TOKEN)
+
 
 if __name__ == "__main__":
     main()
