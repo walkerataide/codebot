@@ -96,6 +96,63 @@ async def on_reaction_add(reaction, user):
             f"{user.name} reagiu com {emoji}: {reaction_rules[emoji]}"
         )
 
+# ENVIA UMA LISTA COM COMANDOS DE ADMIN PARA O DONO DO SERVIDOR
+
+@bot.event
+async def on_guild_join (guild):
+ """Executado quando o bot entra em um novo servidor."""
+    # Procura o dono do servidor
+ dono = guild.owner
+    # Manda a lista para o administrador/dono do server
+ if dono:
+        try:
+            await dono.send(
+                f"👋 Olá **{dono.display_name}**, obrigado por me adicionar ao servidor **{guild.name}**!\n\n"
+                f"Aqui estão os comandos de administrador disponíveis:\n"
+                f"```\n"
+                f"!darmissao @membro <descrição>\n"
+                f"!aprovar @membro\n"
+                f"!revogar @membro\n"
+                f"!addpontos @membro <quantidade>\n"
+                f"!rempontos @membro <quantidade>\n"
+                f"!cancelar @membro\n"
+                f"!limpar <quantidade>\n"
+                f"```"
+            )
+        except discord.Forbidden:
+            print(f"⚠️ Não consegui enviar DM para o dono do servidor {guild.name}.")
+
+# ========= Envia uma lista de comandos de admin para membros que possuem o cargo admin ==================================================
+@bot.event
+async def on_guild_join(guild):
+    """Executado quando o bot entra em um novo servidor."""
+    comandos_admin = (
+        "📜 **Comandos de Administrador disponíveis:**\n"
+        "```\n"
+        "!darmissao @membro <descrição>\n"
+        "!aprovar @membro\n"
+        "!revogar @membro\n"
+        "!addpontos @membro <quantidade>\n"
+        "!rempontos @membro <quantidade>\n"
+        "!cancelarmissao @membro\n"
+        "!limpar <quantidade>\n"
+        "```"
+    )
+
+    for membro in guild.members:
+        if membro.guild_permissions.administrator:
+            try:
+                await membro.send(
+                    f"👋 Olá **{membro.display_name}**, eu acabei de entrar no servidor **{guild.name}**!\n\n"
+                    f"{comandos_admin}"
+                )
+            except discord.Forbidden:
+                print(f"⚠️ Não consegui enviar DM para {membro.display_name}.")
+
+
+
+# OBSERVAÇÃO!!!!  ele só envia para o DONO do servidor e não para quem tem cargo de admin
+
 # ===================================================================================
 # 3. COMANDOS DE DIVERSÃO
 # ===================================================================================
@@ -144,6 +201,59 @@ async def slash_hug(interaction: discord.Interaction, member: discord.Member):
     await interaction.response.send_message(
         f"{interaction.user.mention} abraçou {member.mention}! 🤗\n{gif}"
     )
+
+# =============== Comando para atribuir missões a membros (texto, imagens, links, arquivos)==========================
+
+# Slash command para enviar missão
+@bot.tree.command(name="enviar_missao", description="Envia uma missão para um membro.")
+@app_commands.describe(
+    membro="Membro que receberá a missão",
+    descricao="Descrição da missão",
+    link="Um link opcional para a missão",
+    imagem="URL de uma imagem opcional",
+    arquivo="Um arquivo opcional (PDF, TXT, imagem, etc.)"
+)
+async def enviar_missao(
+    interaction: discord.Interaction,
+    membro: discord.Member,
+    descricao: str,
+    link: str = None,
+    imagem: str = None,
+    arquivo: discord.Attachment = None
+):
+    try:
+        # Cria um embed bonitinho
+        embed = discord.Embed(
+            title="🎯 Nova Missão Recebida!",
+            description=descricao,
+            color=discord.Color.red()
+        )
+        if link:
+            embed.add_field(name="🔗 Link de Referência", value=f"[Clique aqui]({link})", inline=False)
+        if imagem:
+            embed.set_image(url=imagem)
+
+        # Envia DM para o membro
+        files = []
+        if arquivo:
+            files.append(await arquivo.to_file())
+
+        await membro.send(
+            content=f"📌 {membro.mention}, você recebeu uma nova missão!",
+            embed=embed,
+            files=files
+        )
+
+        await interaction.response.send_message(
+            f"✅ Missão enviada com sucesso para {membro.mention}.",
+            ephemeral=True
+        )
+
+    except discord.Forbidden:
+        await interaction.response.send_message(
+            f"🚫 Não consegui enviar DM para {membro.mention} (talvez ele bloqueou mensagens diretas).",
+            ephemeral=True
+        )
 
 # ===================================================================================
 # 4. SISTEMA DE PERFIS E RANKING
@@ -245,17 +355,6 @@ async def slash_missoes(interaction: discord.Interaction, membro: discord.Member
 # 5. COMANDOS DE ADMINISTRAÇÃO
 # ===================================================================================
 
-@bot.command()
-async def darmissao(ctx, membro: discord.Member, *, descricao: str):
-    if membro.id in missoes_ativas:
-        await ctx.send(
-            f"⚠️ {membro.display_name} já tem uma missão em andamento:\n**{missoes_ativas[membro.id]}**"
-        )
-        return
-
-    missoes_ativas[membro.id] = descricao
-    await ctx.send(f"📜 Missão dada a {membro.mention}:\n**{descricao}**")
-
 
 @bot.command(name="aprovar")
 async def aprovar(ctx, membro: discord.Member):
@@ -281,7 +380,7 @@ async def aprovar(ctx, membro: discord.Member):
 
 @bot.command()
 @commands.has_permissions(administrator=True)
-async def revogar(ctx, membro: discord.Member):
+async def cancelar(ctx, membro: discord.Member):
     if membro.id not in missoes_ativas:
         await ctx.send(f"⚠️ {membro.display_name} não tem nenhuma missão ativa.")
         return
