@@ -63,14 +63,14 @@ async def on_ready():
 async def on_member_join(member):
     """Mensagem de boas-vindas ao entrar no servidor."""
     # Carrega o ID do canal de boas-vindas de um arquivo JSON de configuração
-    canal = member.guild.get_channel(os.getenv("CHANNEL_ID"))
+    canal = member.guild.get_channel(os.getenv("1402964229430050846"))
 
     if canal:
         await canal.send(
             f"Seja bem-vindo {member.mention}, você foi promovido a recruta da torre."
         )
     else:
-        print(f"⚠️ Canal de boas-vindas com ID {canal_id} não encontrado.")
+        print(f"⚠️ Canal de boas-vindas com ID {canal} não encontrado.")
 
 
 @bot.event
@@ -289,6 +289,15 @@ async def revogar(ctx, membro: discord.Member):
     missao_revogada = missoes_ativas.pop(membro.id)
     await ctx.send(f"❌ Missão de **{membro.display_name}** revogada:\n*{missao_revogada}*")
 
+    try:
+        await membro.send(
+            f"❌ Sua missão foi **cancelada** pela staff do servidor **{ctx.guild.name}**.\n"
+            f"Missão cancelada: *{missao_revogada}*"
+        )
+    except discord.Forbidden:
+        await ctx.followup.send(
+            f"⚠️ Não consegui enviar DM para {membro.mention}.", ephemeral=True
+        )
 
 @bot.command()
 @commands.has_permissions(administrator=True)
@@ -329,6 +338,7 @@ async def limpar(ctx, quantidade: int = 10):
 
     deletadas = await ctx.channel.purge(limit=quantidade + 1)
     await ctx.send(f"🧹 Limpei {len(deletadas) - 1} mensagens!", delete_after=5)
+
 
 # ===================================================================================
 # 6. TRATAMENTO DE ERROS
