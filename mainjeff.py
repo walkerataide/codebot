@@ -428,15 +428,19 @@ async def rempontos(ctx, membro: discord.Member, qtd: int):
     )
 
 
-@bot.command()
-async def limpar(ctx, quantidade: int = 10):
-    """Apaga mensagens no chat (default = 10)."""
+@bot.command(name="limpar", help="Apaga um número específico de mensagens (somente admins).")
+@commands.has_permissions(manage_messages=True)  # só quem tem permissão pode usar
+async def limpar(ctx, quantidade: int):
     if quantidade < 1:
-        await ctx.send("⚠️ A quantidade precisa ser pelo menos 1.")
+        await ctx.send("❌ Você precisa informar um número válido de mensagens para apagar.")
         return
 
+    # apaga a quantidade + 1 (porque inclui o comando enviado)
     deletadas = await ctx.channel.purge(limit=quantidade + 1)
-    await ctx.send(f"🧹 Limpei {len(deletadas) - 1} mensagens!", delete_after=5)
+
+    # mensagem de confirmação
+    msg = await ctx.send(f"🧹 Apaguei {len(deletadas) - 1} mensagens.")
+    await msg.delete(delay=5)  # some sozinho depois de 5 segundos
 
 
 # ===================================================================================
