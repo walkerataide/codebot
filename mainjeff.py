@@ -9,6 +9,7 @@ import random
 import discord
 from discord import app_commands
 from discord.ext import commands
+from typing import Union
 from dotenv import load_dotenv
 import json
 
@@ -207,7 +208,7 @@ async def slash_hug(interaction: discord.Interaction, member: discord.Member):
 # Slash command para enviar missão
 @bot.tree.command(name="enviar_missao", description="Envia uma missão para um membro.")
 @app_commands.describe(
-    membro="Membro que receberá a missão",
+    alvo="Membro ou Cargo que receberá a missão",
     descricao="Descrição da missão",
     link="Um link opcional para a missão",
     imagem="URL de uma imagem opcional",
@@ -215,13 +216,17 @@ async def slash_hug(interaction: discord.Interaction, member: discord.Member):
 )
 async def enviar_missao(
     interaction: discord.Interaction,
-    membro: discord.Member,
+    alvo:  Union[discord.Member, discord.Role],
     descricao: str,
     link: str = None,
     imagem: str = None,
     arquivo: discord.Attachment = None
 ):
     try:
+
+        # Verifica se o alvo é um cargo ou um membro
+        is_cargo = isinstance(alvo, discord.Role)
+        
         # Cria um embed bonitinho
         embed = discord.Embed(
             title="🎯 Nova Missão Recebida!",
@@ -238,20 +243,64 @@ async def enviar_missao(
         if arquivo:
             files.append(await arquivo.to_file())
 
-        await membro.send(
-            content=f"📌 {membro.mention}, você recebeu uma nova missão!",
-            embed=embed,
-            files=files
-        )
 
-        await interaction.response.send_message(
-            f"✅ Missão enviada com sucesso para {membro.mention}.",
-            ephemeral=True
-        )
+        # Enviar para membro individual
+        if not is_cargo:
+            try:
+                await alvo.send(
+                    content=f"📌 {alvo.mention}, você recebeu uma nova missão!",
+                    embed=embed,
+                    files=files
+                )
 
-    except discord.Forbidden:
+                await interaction.response.send_message(
+                    f"✅ Missão enviada com sucesso para {alvo.mention}.",
+                    ephemeral=True
+                )
+            except discord.Forbidden:
+                await interaction.response.send_message(
+                    f"🚫 Não consegui enviar DM para {alvo.mention} (talvez ele bloqueou mensagens diretas).",
+                    ephemeral=True
+                )
+
+        # Enviar para todos os membros com o cargo
+        else:
+            enviados = 0
+            falhas = []
+
+            for member in alvo.members:
+                if not member.bot:  #ignora os bots
+                    try:
+                        await member.send(
+                            content=f"📌 {member.mention}, você recebeu uma nova missão!",
+                            embed=embed,
+                            files=files
+                        )
+                        enviados += 1
+                    except discord.Forbidden:
+                        falhas.append(member.display_name)
+                    except Exception as e:
+                        falhas.append(f"{member.mention} (erro: {str(e)})")
+
+            if enviados > 0:
+                mensagem = f"✅ Missão enviada para **{enviados}** membro(s) do cargo {alvo.mention}!"
+
+                if falhas:
+                    falhas_contadas = falhas[:-5]  # Mostra apenas os primeiros 5 falhos
+                    mensagem += f"\n⚠️ Não consegui enviar DM para: {', '.join(falhas_contadas)}"
+                    if len(falhas) > 5:
+                        mensagem += f" e mais {len(falhas) - 5} outros."
+
+                await interaction.response.send_message(mensagem, ephemeral=True)
+            else:
+                await interaction.response.send_message(
+                    f"🚫 Não consegui enviar DM para nenhum membro do cargo {alvo.mention}.",
+                    ephemeral=True
+                )
+
+    except Exception as e:
         await interaction.response.send_message(
-            f"🚫 Não consegui enviar DM para {membro.mention} (talvez ele bloqueou mensagens diretas).",
+            f"❌ ERRO inesperado: {str(e)}",
             ephemeral=True
         )
 
