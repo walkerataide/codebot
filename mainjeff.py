@@ -46,12 +46,20 @@ bot = setup_bot()
 # ===================================================================================
 # 2. EVENTOS DO BOT
 # ===================================================================================
+# função para carregar todos os cogs da pasta
+async def load_cogs():
+    for arquivo in os.listdir('cogs'):
+        if arquivo.endswith('.py'):
+            await bot.load_extension(f"cogs.{arquivo[:-3]}")
 
 @bot.event
 async def on_ready():
     """Evento disparado quando o bot é iniciado e conectado."""
+    await load_cogs()  # Carrega os cogs ao iniciar
     print(f"Bot conectado como {bot.user}")
     print(f"Jeff está pronto para caçar em {len(bot.guilds)} servidores!")
+
+
 
     # Sincronização dos comandos de barra
     try:
