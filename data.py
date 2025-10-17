@@ -1,0 +1,2 @@
+perfis = {}
+missoes_ativas = {}
