@@ -13,6 +13,14 @@ class Perfis(commands.Cog):
     @app_commands.describe(nome="O nome que deseja para seu perfil")
     async def criar_perfil(self, interaction: discord.Interaction, nome: str):
         user_id = interaction.user.id
+
+        if user_id in perfis:
+            await interaction.response.send_message(
+                 "⚠️ Você já possui um perfil criado!",
+                 ephemeral=True
+            )
+            return
+        
         perfis[user_id] = {
             "nome": nome,
             "pontos": perfis.get(user_id, {}).get("pontos", 0),
